@@ -410,7 +410,7 @@ import BookActionsMenu from '@/components/menus/BookActionsMenu.vue'
 import ItemCard from '@/components/ItemCard.vue'
 import ToolbarSticky from '@/components/bars/ToolbarSticky.vue'
 import {groupAuthorsByRole} from '@/functions/authors'
-import {getBookFormatFromMediaType, getBookReadRouteFromMediaProfile} from '@/functions/book-format'
+import {getBookFormatFromMediaType, getBookReadRouteFromMedia} from '@/functions/book-format'
 import {getPagesLeft, getReadProgress, getReadProgressPercentage} from '@/functions/book-progress'
 import {getBookTitleCompact} from '@/functions/book-title'
 import {bookFileUrl, bookThumbnailUrl} from '@/functions/urls'
@@ -437,6 +437,8 @@ import RtlIcon from '@/components/RtlIcon.vue'
 import {BookSseDto, LibrarySseDto, ReadListSseDto, ReadProgressSseDto} from '@/types/komga-sse'
 import {RawLocation} from 'vue-router/types/router'
 import {ReadListDto} from '@/types/komga-readlists'
+import { LIBRARIES_ALL } from '@/types/library'
+
 
 export default Vue.extend({
   name: 'BrowseBook',
@@ -489,7 +491,7 @@ export default Vue.extend({
   },
   computed: {
     readRouteName(): string {
-      return getBookReadRouteFromMediaProfile(this.book.media.mediaProfile)
+      return getBookReadRouteFromMedia(this.book.media)
     },
     isAdmin(): boolean {
       return this.$store.getters.meAdmin
@@ -608,8 +610,13 @@ export default Vue.extend({
           id: this.$route.query.contextId as string,
         }
         this.book.context = this.context
-        this.$komgaReadLists.getOneReadList(this.context.id)
-          .then(v => this.contextName = v.name)
+        if (this.$route.query.context === ContextOrigin.READLIST) {
+          this.$komgaReadLists.getOneReadList(this.context.id).then(v => this.contextName = v.name)
+        } else if (this.$route.query.context === ContextOrigin.LIBRARY && this.$route.query.contextId !== LIBRARIES_ALL) {
+          this.$komgaLibraries.getLibrary(this.context.id).then(v => this.contextName = v.name)
+        }  
+
+
       }
 
       // Get siblings depending on origin
