@@ -31,6 +31,7 @@ import org.gotson.komga.infrastructure.configuration.KomgaSettingsProvider
 import org.gotson.komga.infrastructure.hash.Hasher
 import org.gotson.komga.infrastructure.image.ImageConverter
 import org.gotson.komga.infrastructure.image.ImageType
+import org.gotson.komga.language.toCurrentTimeZone
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Sort
@@ -385,7 +386,7 @@ class BookLifecycle(
 
   fun markProgression(book: Book, user: KomgaUser, newProgression: R2Progression) {
     readProgressRepository.findByBookIdAndUserIdOrNull(book.id, user.id)?.let { savedProgress ->
-      check(newProgression.modified.toLocalDateTime().isAfter(savedProgress.readDate)) { "Progression is older than existing" }
+      check(newProgression.modified.toLocalDateTime().toCurrentTimeZone().isAfter(savedProgress.readDate)) { "Progression is older than existing" }
     }
 
     val media = mediaRepository.findById(book.id)
@@ -400,7 +401,7 @@ class BookLifecycle(
           user.id,
           newProgression.locator.locations!!.position!!,
           newProgression.locator.locations.position == media.pageCount,
-          newProgression.modified.toLocalDateTime(),
+          newProgression.modified.toLocalDateTime().toCurrentTimeZone(),
           newProgression.device.id,
           newProgression.device.name,
           newProgression.locator,
@@ -408,7 +409,10 @@ class BookLifecycle(
       }
 
       MediaProfile.EPUB -> {
-        val href = newProgression.locator.href.replaceBefore("/resource/", "").removePrefix("/resource/").let { UriUtils.decode(it, Charsets.UTF_8) }
+        val href = newProgression.locator.href
+          .replaceBefore("/resource/", "").removePrefix("/resource/")
+          .replaceAfter("#", "").removeSuffix("#")
+          .let { UriUtils.decode(it, Charsets.UTF_8) }
         require(href in media.files.map { it.fileName }) { "Resource does not exist in book: $href" }
         requireNotNull(newProgression.locator.locations?.progression) { "location.progression is required" }
 
@@ -433,7 +437,7 @@ class BookLifecycle(
           user.id,
           totalProgression?.let { (media.pageCount * it).roundToInt() } ?: 0,
           totalProgression?.let { it >= 0.99F } ?: false,
-          newProgression.modified.toLocalDateTime(),
+          newProgression.modified.toLocalDateTime().toCurrentTimeZone(),
           newProgression.device.id,
           newProgression.device.name,
           newProgression.locator,
