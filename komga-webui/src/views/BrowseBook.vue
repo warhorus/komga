@@ -11,6 +11,7 @@
           </v-btn>
         </template>
         <span v-if="contextReadList">{{ $t('common.go_to_readlist') }}</span>
+        <span v-else-if="contextLibrary">{{ $t('common.go_to_library') }}</span>
         <span v-else>{{ $t('common.go_to_series') }}</span>
       </v-tooltip>
 
@@ -436,6 +437,8 @@ import RtlIcon from '@/components/RtlIcon.vue'
 import {BookSseDto, LibrarySseDto, ReadListSseDto, ReadProgressSseDto} from '@/types/komga-sse'
 import {RawLocation} from 'vue-router/types/router'
 import {ReadListDto} from '@/types/komga-readlists'
+import { LIBRARIES_ALL } from '@/types/library'
+
 
 export default Vue.extend({
   name: 'BrowseBook',
@@ -546,12 +549,17 @@ export default Vue.extend({
     contextReadList(): boolean {
       return this.context.origin === ContextOrigin.READLIST
     },
+    contextLibrary(): boolean {
+      return this.context.origin === ContextOrigin.LIBRARY
+    },
     mediaComment(): string {
       return convertErrorCodes(this.book.media.comment)
     },
     parentLocation(): RawLocation {
       if (this.contextReadList)
         return {name: 'browse-readlist', params: {readListId: this.context.id}}
+      else if (this.contextLibrary)
+        return {name: 'browse-libraries-by-book', params: {libraryId: this.context.id}}
       else
         return {name: 'browse-series', params: {seriesId: this.book.seriesId}}
     },
@@ -602,8 +610,13 @@ export default Vue.extend({
           id: this.$route.query.contextId as string,
         }
         this.book.context = this.context
-        this.$komgaReadLists.getOneReadList(this.context.id)
-          .then(v => this.contextName = v.name)
+        if (this.$route.query.context === ContextOrigin.READLIST) {
+          this.$komgaReadLists.getOneReadList(this.context.id).then(v => this.contextName = v.name)
+        } else if (this.$route.query.context === ContextOrigin.LIBRARY && this.$route.query.contextId !== LIBRARIES_ALL) {
+          this.$komgaLibraries.getLibrary(this.context.id).then(v => this.contextName = v.name)
+        }  
+
+
       }
 
       // Get siblings depending on origin
