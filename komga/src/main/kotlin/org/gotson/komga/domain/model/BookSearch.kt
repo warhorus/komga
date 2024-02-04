@@ -30,11 +30,11 @@ class BookSearchWithReadProgress(
   val languages: Collection<String>? = null,
   seriesPrefix: String? = null,
 ) : BookSearch(
-  libraryIds = libraryIds,
-  seriesIds = seriesIds,
-  searchTerm = searchTerm,
-  mediaStatus = mediaStatus,
-  deleted = deleted,
-  releasedAfter = releasedAfter,
-  seriesPrefix = seriesPrefix,
-)
+    libraryIds = libraryIds,
+    seriesIds = seriesIds,
+    searchTerm = searchTerm,
+    mediaStatus = mediaStatus,
+    deleted = deleted,
+    releasedAfter = releasedAfter,
+    seriesPrefix = seriesPrefix,
+  )

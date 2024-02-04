@@ -1,6 +1,6 @@
 package org.gotson.komga.infrastructure.security
 
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gotson.komga.domain.model.AuthenticationActivity
 import org.gotson.komga.domain.persistence.AuthenticationActivityRepository
 import org.gotson.komga.domain.persistence.KomgaUserRepository
@@ -22,24 +22,25 @@ class LoginListener(
   private val authenticationActivityRepository: AuthenticationActivityRepository,
   private val userRepository: KomgaUserRepository,
 ) {
-
   @EventListener
   fun onSuccess(event: AuthenticationSuccessEvent) {
     val user = (event.authentication.principal as KomgaPrincipal).user
-    val source = when (event.source) {
-      is OAuth2LoginAuthenticationToken -> "OAuth2:${(event.source as OAuth2LoginAuthenticationToken).clientRegistration.clientName}"
-      is UsernamePasswordAuthenticationToken -> "Password"
-      is RememberMeAuthenticationToken -> "RememberMe"
-      else -> null
-    }
-    val activity = AuthenticationActivity(
-      userId = user.id,
-      email = user.email,
-      ip = event.getIp(),
-      userAgent = event.getUserAgent(),
-      success = true,
-      source = source,
-    )
+    val source =
+      when (event.source) {
+        is OAuth2LoginAuthenticationToken -> "OAuth2:${(event.source as OAuth2LoginAuthenticationToken).clientRegistration.clientName}"
+        is UsernamePasswordAuthenticationToken -> "Password"
+        is RememberMeAuthenticationToken -> "RememberMe"
+        else -> null
+      }
+    val activity =
+      AuthenticationActivity(
+        userId = user.id,
+        email = user.email,
+        ip = event.getIp(),
+        userAgent = event.getUserAgent(),
+        success = true,
+        source = source,
+      )
 
     logger.info { activity }
     authenticationActivityRepository.insert(activity)
@@ -48,21 +49,23 @@ class LoginListener(
   @EventListener
   fun onFailure(event: AbstractAuthenticationFailureEvent) {
     val user = event.authentication?.principal?.toString().orEmpty()
-    val source = when (event.source) {
-      is OAuth2LoginAuthenticationToken -> "OAuth2:${(event.source as OAuth2LoginAuthenticationToken).clientRegistration.clientName}"
-      is UsernamePasswordAuthenticationToken -> "Password"
-      is RememberMeAuthenticationToken -> "RememberMe"
-      else -> null
-    }
-    val activity = AuthenticationActivity(
-      userId = userRepository.findByEmailIgnoreCaseOrNull(user)?.id,
-      email = user,
-      ip = event.getIp(),
-      userAgent = event.getUserAgent(),
-      success = false,
-      source = source,
-      error = event.exception.message,
-    )
+    val source =
+      when (event.source) {
+        is OAuth2LoginAuthenticationToken -> "OAuth2:${(event.source as OAuth2LoginAuthenticationToken).clientRegistration.clientName}"
+        is UsernamePasswordAuthenticationToken -> "Password"
+        is RememberMeAuthenticationToken -> "RememberMe"
+        else -> null
+      }
+    val activity =
+      AuthenticationActivity(
+        userId = userRepository.findByEmailIgnoreCaseOrNull(user)?.id,
+        email = user,
+        ip = event.getIp(),
+        userAgent = event.getUserAgent(),
+        success = false,
+        source = source,
+        error = event.exception.message,
+      )
 
     logger.info { activity }
     authenticationActivityRepository.insert(activity)

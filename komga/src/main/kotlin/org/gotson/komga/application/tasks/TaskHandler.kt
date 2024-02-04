@@ -1,7 +1,7 @@
 package org.gotson.komga.application.tasks
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micrometer.core.instrument.MeterRegistry
-import mu.KotlinLogging
 import org.gotson.komga.domain.model.BookAction
 import org.gotson.komga.domain.persistence.BookRepository
 import org.gotson.komga.domain.persistence.LibraryRepository
@@ -47,7 +47,6 @@ class TaskHandler(
   private val thumbnailLifecycle: ThumbnailLifecycle,
   private val meterRegistry: MeterRegistry,
 ) {
-
   fun handleTask(task: Task) {
     logger.info { "Executing task: $task" }
     try {
@@ -162,8 +161,10 @@ class TaskHandler(
 
           is Task.DeleteBook -> {
             bookRepository.findByIdOrNull(task.bookId)?.let { book ->
-              if (book.oneshot) seriesLifecycle.deleteSeriesFiles(seriesRepository.findByIdOrNull(book.seriesId)!!)
-              else bookLifecycle.deleteBookFiles(book)
+              if (book.oneshot)
+                seriesLifecycle.deleteSeriesFiles(seriesRepository.findByIdOrNull(book.seriesId)!!)
+              else
+                bookLifecycle.deleteBookFiles(book)
             }
           }
 

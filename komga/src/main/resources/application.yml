@@ -11,6 +11,7 @@ logging:
     name: \${komga.config-dir}/logs/komga.log
   level:
     org.apache.activemq.audit: WARN
+    org.apache.fontbox.cff.Type1CharString: ERROR
 
 komga:
   database:
@@ -34,7 +35,6 @@ spring:
   thymeleaf:
     prefix: classpath:/public/
   mvc:
-    throw-exception-if-no-handler-found: true
     async:
       request-timeout: 1h
   # Deprecated - to remove along with ArtemisCleanup.kt

@@ -10813,6 +10813,9 @@
               "type": "string"
             }
           },
+          "ageRestriction": {
+            "$ref": "#/components/schemas/AgeRestrictionUpdateDto"
+          },
           "labelsAllow": {
             "uniqueItems": true,
             "type": "array",
@@ -10826,9 +10829,6 @@
             "items": {
               "type": "string"
             }
-          },
-          "ageRestriction": {
-            "$ref": "#/components/schemas/AgeRestrictionUpdateDto"
           },
           "sharedLibraries": {
             "$ref": "#/components/schemas/SharedLibrariesUpdateDto"

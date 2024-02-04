@@ -1,7 +1,7 @@
 package org.gotson.komga.infrastructure.jooq.tasks
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gotson.komga.application.tasks.Task
 import org.gotson.komga.application.tasks.TasksRepository
 import org.gotson.komga.jooq.tasks.Tables
@@ -47,19 +47,20 @@ class TasksDao(
 
   @Transactional
   override fun takeFirst(owner: String): Task? {
-    val task = selectBase()
-      .where(tasksAvailableCondition)
-      .orderBy(t.PRIORITY.desc(), t.LAST_MODIFIED_DATE)
-      .limit(1)
-      .fetchOne()
-      ?.let {
-        try {
-          objectMapper.readValue(it.value2(), Class.forName(it.value1())) as Task
-        } catch (e: Exception) {
-          logger.error(e) { "Could not deserialize object of type: ${it.value1()}" }
-          null
-        }
-      } ?: return null
+    val task =
+      selectBase()
+        .where(tasksAvailableCondition)
+        .orderBy(t.PRIORITY.desc(), t.LAST_MODIFIED_DATE)
+        .limit(1)
+        .fetchOne()
+        ?.let {
+          try {
+            objectMapper.readValue(it.value2(), Class.forName(it.value1())) as Task
+          } catch (e: Exception) {
+            logger.error(e) { "Could not deserialize object of type: ${it.value1()}" }
+            null
+          }
+        } ?: return null
 
     dsl.update(t)
       .set(t.OWNER, owner)

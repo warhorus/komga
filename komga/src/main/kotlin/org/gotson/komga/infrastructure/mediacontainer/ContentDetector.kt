@@ -1,6 +1,6 @@
 package org.gotson.komga.infrastructure.mediacontainer
 
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.tika.config.TikaConfig
 import org.apache.tika.io.TikaInputStream
 import org.apache.tika.metadata.Metadata
@@ -15,11 +15,11 @@ private val logger = KotlinLogging.logger {}
 class ContentDetector(
   private val tika: TikaConfig,
 ) {
-
   fun detectMediaType(path: Path): String {
-    val metadata = Metadata().also {
-      it[Metadata.TIKA_MIME_FILE] = path.name
-    }
+    val metadata =
+      Metadata().also {
+        it[Metadata.TIKA_MIME_FILE] = path.name
+      }
 
     return TikaInputStream.get(path).use {
       val mediaType = tika.detector.detect(it, metadata)

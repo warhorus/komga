@@ -1,6 +1,6 @@
 package org.gotson.komga.application.scheduler
 
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gotson.komga.application.tasks.TaskEmitter
 import org.gotson.komga.domain.model.Library
 import org.gotson.komga.domain.model.Library.ScanInterval.DAILY
@@ -28,9 +28,10 @@ class LibraryScanScheduler(
   // map the libraryId to the scan scheduled task
   private val registry = ConcurrentHashMap<String, ScheduledTask>()
 
-  private val registrar = ScheduledTaskRegistrar().apply {
-    setTaskScheduler(taskScheduler)
-  }
+  private val registrar =
+    ScheduledTaskRegistrar().apply {
+      setTaskScheduler(taskScheduler)
+    }
 
   fun scheduleScan(library: Library) {
     registry.remove(library.id)?.cancel(false)

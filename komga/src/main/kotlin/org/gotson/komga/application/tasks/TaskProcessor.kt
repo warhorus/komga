@@ -1,10 +1,10 @@
 package org.gotson.komga.application.tasks
 
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gotson.komga.infrastructure.configuration.KomgaSettingsProvider
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.boot.context.event.ApplicationReadyEvent
-import org.springframework.boot.task.TaskExecutorBuilder
+import org.springframework.boot.task.ThreadPoolTaskExecutorBuilder
 import org.springframework.context.event.EventListener
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import org.springframework.stereotype.Service
@@ -16,7 +16,7 @@ class TaskProcessor(
   private val tasksRepository: TasksRepository,
   private val taskHandler: TaskHandler,
   private val settingsProvider: KomgaSettingsProvider,
-  taskExecutorBuilder: TaskExecutorBuilder,
+  taskExecutorBuilder: ThreadPoolTaskExecutorBuilder,
 ) : InitializingBean {
   val executor: ThreadPoolTaskExecutor =
     taskExecutorBuilder
@@ -43,10 +43,13 @@ class TaskProcessor(
   fun processAvailableTask() {
     if (processTasks) {
       logger.debug { "Active count: ${executor.activeCount}, Core Pool Size: ${executor.corePoolSize}, Pool Size: ${executor.poolSize}" }
-      if (executor.corePoolSize == 1) executor.execute { takeAndProcess() }
-      // fan out while threads are available
-      else while (tasksRepository.hasAvailable() && executor.activeCount < executor.corePoolSize)
+      if (executor.corePoolSize == 1) {
         executor.execute { takeAndProcess() }
+      } else {
+        // fan out while threads are available
+        while (tasksRepository.hasAvailable() && executor.activeCount < executor.corePoolSize)
+          executor.execute { takeAndProcess() }
+      }
     } else {
       logger.debug { "Not processing tasks" }
     }

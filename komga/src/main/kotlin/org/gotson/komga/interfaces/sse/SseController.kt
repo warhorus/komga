@@ -1,6 +1,6 @@
 package org.gotson.komga.interfaces.sse
 
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gotson.komga.application.tasks.TasksRepository
 import org.gotson.komga.domain.model.DomainEvent
 import org.gotson.komga.domain.model.KomgaUser
@@ -39,7 +39,6 @@ class SseController(
   private val bookRepository: BookRepository,
   private val tasksRepository: TasksRepository,
 ) : SmartLifecycle {
-
   private var acceptingConnections = true
   private val emitters = Collections.synchronizedMap(HashMap<SseEmitter, KomgaUser>())
 
@@ -108,7 +107,12 @@ class SseController(
     }
   }
 
-  private fun emitSse(name: String, data: Any, adminOnly: Boolean = false, userIdOnly: String? = null) {
+  private fun emitSse(
+    name: String,
+    data: Any,
+    adminOnly: Boolean = false,
+    userIdOnly: String? = null,
+  ) {
     logger.debug { "Publish SSE: '$name':$data" }
 
     synchronized(emitters) {
