@@ -49,7 +49,7 @@ import org.gotson.komga.infrastructure.swagger.PageableAsQueryParam
 import org.gotson.komga.infrastructure.swagger.PageableWithoutSortAsQueryParam
 import org.gotson.komga.infrastructure.web.Authors
 import org.gotson.komga.infrastructure.web.DelimitedPair
-import org.gotson.komga.interfaces.api.checkContentRestriction
+import org.gotson.komga.interfaces.api.ContentRestrictionChecker
 import org.gotson.komga.interfaces.api.persistence.BookDtoRepository
 import org.gotson.komga.interfaces.api.persistence.ReadProgressDtoRepository
 import org.gotson.komga.interfaces.api.persistence.SeriesDtoRepository
@@ -114,6 +114,7 @@ class SeriesController(
   private val contentDetector: ContentDetector,
   private val imageAnalyzer: ImageAnalyzer,
   private val thumbnailsSeriesRepository: ThumbnailSeriesRepository,
+  private val contentRestrictionChecker: ContentRestrictionChecker,
 ) {
   @PageableAsQueryParam
   @AuthorsAsQueryParam
@@ -374,7 +375,7 @@ class SeriesController(
     @PathVariable(name = "seriesId") id: String,
   ): SeriesDto =
     seriesDtoRepository.findByIdOrNull(id, principal.user.id)?.let {
-      principal.user.checkContentRestriction(it)
+      contentRestrictionChecker.checkContentRestriction(principal.user, it)
       it.restrictUrl(!principal.user.roleAdmin)
     } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
 
@@ -744,7 +745,7 @@ class SeriesController(
    * @throws[ResponseStatusException] if the user cannot access the content
    */
   private fun KomgaUser.checkContentRestriction(seriesId: String) {
-    if (!sharedAllLibraries) {
+    if (!canAccessAllLibraries()) {
       seriesRepository.getLibraryId(seriesId)?.let {
         if (!canAccessLibrary(it)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
       } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)

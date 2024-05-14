@@ -1,3 +1,98 @@
+# [1.11.1](https://github.com/gotson/komga/compare/1.11.0...1.11.1) (2024-04-24)
+## 🐛 Fixes
+**api**
+- first unread cover should include in progress books ([77c15f9](https://github.com/gotson/komga/commits/77c15f9))
+
+**unscoped**
+- sync progress not compatible between Cantook and web reader ([0211096](https://github.com/gotson/komga/commits/0211096)), closes [#1477](https://github.com/gotson/komga/issues/1477)
+
+# [1.11.0](https://github.com/gotson/komga/compare/1.10.4...1.11.0) (2024-04-18)
+## 🚀 Features
+**opds**
+- discoverable Progression API, used by Aldiko/Cantook ([443d8a7](https://github.com/gotson/komga/commits/443d8a7))
+- add authenticate property for Aldiko/Cantook ([aaf958d](https://github.com/gotson/komga/commits/aaf958d))
+- support authentication for OPDS ([3250c12](https://github.com/gotson/komga/commits/3250c12))
+
+## 🐛 Fixes
+**api**
+- broken links in webpub manifests ([14bee17](https://github.com/gotson/komga/commits/14bee17))
+- library access is not properly applied in some cases for admins ([77bad31](https://github.com/gotson/komga/commits/77bad31)), closes [#1470](https://github.com/gotson/komga/issues/1470)
+- library restrictions are not properly apply in some cases ([aa0a9b4](https://github.com/gotson/komga/commits/aa0a9b4)), closes [#1474](https://github.com/gotson/komga/issues/1474)
+- disable content negotiation for images in webpub manifest ([5a94ee1](https://github.com/gotson/komga/commits/5a94ee1))
+
+**komga-tray**
+- open komga menu does not use custom port ([edc1223](https://github.com/gotson/komga/commits/edc1223)), closes [#1468](https://github.com/gotson/komga/issues/1468)
+
+## 🔄️ Changes
+
+- reorganize code shared between REST and OPDS ([ec3eb44](https://github.com/gotson/komga/commits/ec3eb44))
+
+## 🛠  Build
+
+- fix failing test ([39e8d1d](https://github.com/gotson/komga/commits/39e8d1d))
+- adjust usage of setup-gradle to new syntax ([edc0762](https://github.com/gotson/komga/commits/edc0762))
+- migrate to gradle/actions/wrapper-validation@v3 ([bcafbd8](https://github.com/gotson/komga/commits/bcafbd8))
+
+## 🌐 Translation
+**webui**
+- translated using Weblate (Norwegian Bokmål) ([9ac00bc](https://github.com/gotson/komga/commits/9ac00bc))
+- translated using Weblate (Chinese (Simplified)) ([e81c342](https://github.com/gotson/komga/commits/e81c342))
+- translated using Weblate (Dutch) ([8797a77](https://github.com/gotson/komga/commits/8797a77))
+- translated using Weblate (Arabic) ([3e623dd](https://github.com/gotson/komga/commits/3e623dd))
+- translated using Weblate (Portuguese) ([1d6add1](https://github.com/gotson/komga/commits/1d6add1))
+- translated using Weblate (German) ([44064cd](https://github.com/gotson/komga/commits/44064cd))
+
+## ⚙️ Dependencies
+**ci**
+- bump hydraulic-software/conveyor from 14.0 to 14.1 ([38261f1](https://github.com/gotson/komga/commits/38261f1))
+- bump hydraulic-software/conveyor from 13.1 to 14.0 ([38c5699](https://github.com/gotson/komga/commits/38c5699))
+
+**webui**
+- bump express from 4.18.2 to 4.19.2 in /komga-webui ([dea7acd](https://github.com/gotson/komga/commits/dea7acd))
+- bump webpack-dev-middleware in /komga-webui ([b5b6d13](https://github.com/gotson/komga/commits/b5b6d13))
+- bump follow-redirects from 1.15.4 to 1.15.6 in /komga-webui ([3e4f705](https://github.com/gotson/komga/commits/3e4f705))
+
+# [1.10.4](https://github.com/gotson/komga/compare/1.10.3...1.10.4) (2024-03-12)
+## 🐛 Fixes
+**api**
+- cap search results to avoid SQLITE_TOOBIG ([d34d4a5](https://github.com/gotson/komga/commits/d34d4a5)), closes [#1428](https://github.com/gotson/komga/issues/1428)
+- book fileLastModified was in local time instead of UTC ([1648533](https://github.com/gotson/komga/commits/1648533)), closes [#1430](https://github.com/gotson/komga/issues/1430)
+
+**unscoped**
+- better compatibility for malformed epub files ([e09cbc4](https://github.com/gotson/komga/commits/e09cbc4)), closes [#1441](https://github.com/gotson/komga/issues/1441)
+- some epub resources would not be detected properly ([f8e40ce](https://github.com/gotson/komga/commits/f8e40ce)), closes [#1441](https://github.com/gotson/komga/issues/1441) [#1442](https://github.com/gotson/komga/issues/1442)
+
+## 🛠  Build
+
+- migrate to gradle/actions/setup-gradle@v3 ([5466087](https://github.com/gotson/komga/commits/5466087))
+
+## 🌐 Translation
+**komga-tray**
+- deleted translation using Weblate (Chinese (Simplified)) ([ed374a1](https://github.com/gotson/komga/commits/ed374a1))
+- translated using Weblate (Chinese (Simplified)) ([4b7bfa0](https://github.com/gotson/komga/commits/4b7bfa0))
+- translated using Weblate (Korean) ([05f02f5](https://github.com/gotson/komga/commits/05f02f5))
+- translated using Weblate (Italian) ([e38dce2](https://github.com/gotson/komga/commits/e38dce2))
+- added translation using Weblate (Portuguese) ([0288231](https://github.com/gotson/komga/commits/0288231))
+- translated using Weblate (Turkish) ([0f189c1](https://github.com/gotson/komga/commits/0f189c1))
+
+**webui**
+- translated using Weblate (Chinese (Simplified)) ([38cdf70](https://github.com/gotson/komga/commits/38cdf70))
+- translated using Weblate (Korean) ([ac3eb4e](https://github.com/gotson/komga/commits/ac3eb4e))
+- translated using Weblate (Finnish) ([d98de06](https://github.com/gotson/komga/commits/d98de06))
+- translated using Weblate (Italian) ([e9f1017](https://github.com/gotson/komga/commits/e9f1017))
+- added translation using Weblate (Portuguese) ([5b70520](https://github.com/gotson/komga/commits/5b70520))
+- translated using Weblate (Portuguese (Brazil)) ([6e915d6](https://github.com/gotson/komga/commits/6e915d6))
+- translated using Weblate (Turkish) ([4e5cc0d](https://github.com/gotson/komga/commits/4e5cc0d))
+
+## ⚙️ Dependencies
+**ci**
+- bump gradle/wrapper-validation-action from 1 to 2 ([5a21c5c](https://github.com/gotson/komga/commits/5a21c5c))
+- bump hydraulic-software/conveyor from 13.0 to 13.1 ([c9ab1f7](https://github.com/gotson/komga/commits/c9ab1f7))
+- bump peter-evans/dockerhub-description from 3.4.2 to 4.0.0 ([898bc19](https://github.com/gotson/komga/commits/898bc19))
+
+**webui**
+- bump sanitize-html from 2.11.0 to 2.12.1 in /komga-webui ([b0b457a](https://github.com/gotson/komga/commits/b0b457a))
+
 # [1.10.3](https://github.com/gotson/komga/compare/1.10.2...1.10.3) (2024-01-23)
 ## 🐛 Fixes
 **komga**

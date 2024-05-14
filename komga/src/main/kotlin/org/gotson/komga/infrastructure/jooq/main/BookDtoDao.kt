@@ -27,6 +27,7 @@ import org.gotson.komga.jooq.main.tables.records.BookMetadataRecord
 import org.gotson.komga.jooq.main.tables.records.BookRecord
 import org.gotson.komga.jooq.main.tables.records.MediaRecord
 import org.gotson.komga.jooq.main.tables.records.ReadProgressRecord
+import org.gotson.komga.language.toUTC
 import org.jooq.AggregateFunction
 import org.jooq.Condition
 import org.jooq.DSLContext
@@ -484,7 +485,7 @@ class BookDtoDao(
   private fun BookSearchWithReadProgress.toCondition(): Condition {
     var c: Condition = noCondition()
 
-    if (!libraryIds.isNullOrEmpty()) c = c.and(b.LIBRARY_ID.`in`(libraryIds))
+    if (libraryIds != null) c = c.and(b.LIBRARY_ID.`in`(libraryIds))
     if (!seriesIds.isNullOrEmpty()) c = c.and(b.SERIES_ID.`in`(seriesIds))
     if (!mediaStatus.isNullOrEmpty()) c = c.and(m.STATUS.`in`(mediaStatus))
     if (deleted == true) c = c.and(b.DELETED_DATE.isNotNull)
@@ -546,7 +547,7 @@ class BookDtoDao(
       number = number,
       created = createdDate,
       lastModified = lastModifiedDate,
-      fileLastModified = fileLastModified,
+      fileLastModified = fileLastModified.toUTC(),
       sizeBytes = fileSize,
       media = media,
       metadata = metadata,
