@@ -322,7 +322,7 @@ class BookController(
   ): ByteArray {
     contentRestrictionChecker.checkContentRestriction(principal.user, bookId)
 
-    return bookLifecycle.getThumbnailBytesByThumbnailId(thumbnailId)
+    return bookLifecycle.getThumbnailBytesByThumbnailId(thumbnailId)?.bytes
       ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
   }
 

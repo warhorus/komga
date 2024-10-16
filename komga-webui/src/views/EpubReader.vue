@@ -164,7 +164,7 @@
                  v-if="!verticalScroll"
     >
       <v-row>
-        <v-col cols="auto">
+        <v-col cols="10" class="text-truncate">
           {{ $t('epubreader.page_of', {page: progressionPage, count: progressionPageCount}) }}
           ({{ progressionTitle || $t('epubreader.current_chapter') }})
         </v-col>
@@ -711,9 +711,10 @@ export default Vue.extend({
           id: this.$route.query.contextId as string,
         }
         this.book.context = this.context
-        if (this.$route.query.context === ContextOrigin.READLIST) {
+
+        if (this?.context.origin === ContextOrigin.READLIST) {
           this.contextName = (await (this.$komgaReadLists.getOneReadList(this.context.id))).name
-        } else if (this.$route.query.context === ContextOrigin.LIBRARY && this.$route.query.contextId !== LIBRARIES_ALL) {
+        } else if (this?.context.origin === ContextOrigin.LIBRARY && this?.context.id !== LIBRARIES_ALL) {
           this.contextName = (await (this.$komgaLibraries.getLibrary(this.context.id))).name
         }
 

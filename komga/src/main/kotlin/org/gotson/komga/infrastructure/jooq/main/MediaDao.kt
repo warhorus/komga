@@ -9,6 +9,7 @@ import org.gotson.komga.domain.model.MediaExtension
 import org.gotson.komga.domain.model.MediaFile
 import org.gotson.komga.domain.model.ProxyExtension
 import org.gotson.komga.domain.persistence.MediaRepository
+import org.gotson.komga.infrastructure.jooq.deserializeMediaExtension
 import org.gotson.komga.infrastructure.jooq.insertTempStrings
 import org.gotson.komga.infrastructure.jooq.selectTempStrings
 import org.gotson.komga.infrastructure.jooq.serializeJsonGz
@@ -24,7 +25,6 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 import java.time.ZoneId
-import java.util.zip.GZIPInputStream
 
 private val logger = KotlinLogging.logger {}
 
@@ -50,6 +50,7 @@ class MediaDao(
       m.PAGE_COUNT,
       m.EXTENSION_CLASS,
       m.EPUB_DIVINA_COMPATIBLE,
+      m.EPUB_IS_KEPUB,
       *p.fields(),
     )
 
@@ -64,7 +65,7 @@ class MediaDao(
       .from(m)
       .where(m.BOOK_ID.eq(bookId))
       .fetchOne()
-      ?.map { deserializeExtension(it.get(m.EXTENSION_CLASS), it.get(m.EXTENSION_VALUE_BLOB)) }
+      ?.map { mapper.deserializeMediaExtension(it.get(m.EXTENSION_CLASS), it.get(m.EXTENSION_VALUE_BLOB)) }
 
   override fun findAllBookIdsByLibraryIdAndMediaTypeAndWithMissingPageHash(
     libraryId: String,
@@ -88,13 +89,6 @@ class MediaDao(
       .fetch()
       .map { it.value1() }
   }
-
-  override fun getPagesSize(bookId: String): Int =
-    dsl.select(m.PAGE_COUNT)
-      .from(m)
-      .where(m.BOOK_ID.eq(bookId))
-      .fetch(m.PAGE_COUNT)
-      .first()
 
   override fun getPagesSizes(bookIds: Collection<String>): Collection<Pair<String, Int>> =
     dsl.select(m.BOOK_ID, m.PAGE_COUNT)
@@ -143,9 +137,10 @@ class MediaDao(
             m.COMMENT,
             m.PAGE_COUNT,
             m.EPUB_DIVINA_COMPATIBLE,
+            m.EPUB_IS_KEPUB,
             m.EXTENSION_CLASS,
             m.EXTENSION_VALUE_BLOB,
-          ).values(null as String?, null, null, null, null, null, null, null),
+          ).values(null as String?, null, null, null, null, null, null, null, null),
         ).also { step ->
           chunk.forEach { media ->
             step.bind(
@@ -155,6 +150,7 @@ class MediaDao(
               media.comment,
               media.pageCount,
               media.epubDivinaCompatible,
+              media.epubIsKepub,
               media.extension?.let { if (it is ProxyExtension) null else it::class.qualifiedName },
               media.extension?.let { if (it is ProxyExtension) null else mapper.serializeJsonGz(it) },
             )
@@ -239,6 +235,7 @@ class MediaDao(
       .set(m.COMMENT, media.comment)
       .set(m.PAGE_COUNT, media.pageCount)
       .set(m.EPUB_DIVINA_COMPATIBLE, media.epubDivinaCompatible)
+      .set(m.EPUB_IS_KEPUB, media.epubIsKepub)
       .apply {
         if (media.extension != null && media.extension !is ProxyExtension) {
           set(m.EXTENSION_CLASS, media.extension::class.qualifiedName)
@@ -293,24 +290,10 @@ class MediaDao(
       comment = comment,
       bookId = bookId,
       epubDivinaCompatible = epubDivinaCompatible,
+      epubIsKepub = epubIsKepub,
       createdDate = createdDate.toCurrentTimeZone(),
       lastModifiedDate = lastModifiedDate.toCurrentTimeZone(),
     )
-
-  fun deserializeExtension(
-    extensionClass: String?,
-    extensionBlob: ByteArray?,
-  ): MediaExtension? {
-    if (extensionClass == null || extensionBlob == null) return null
-    return try {
-      GZIPInputStream(extensionBlob.inputStream()).use { gz ->
-        mapper.readValue(gz, Class.forName(extensionClass)) as MediaExtension
-      }
-    } catch (e: Exception) {
-      logger.error(e) { "Could not deserialize media extension class: $extensionClass" }
-      null
-    }
-  }
 
   private fun MediaPageRecord.toDomain() =
     BookPage(

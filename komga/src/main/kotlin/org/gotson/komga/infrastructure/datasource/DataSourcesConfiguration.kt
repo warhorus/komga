@@ -17,11 +17,11 @@ class DataSourcesConfiguration(
   @Bean("sqliteDataSource")
   @Primary
   fun sqliteDataSource(): DataSource =
-    buildDataSource("SqliteUdfPool", SqliteUdfDataSource::class.java, komgaProperties.database)
+    buildDataSource("SqliteMainPool", SqliteUdfDataSource::class.java, komgaProperties.database)
 
   @Bean("tasksDataSource")
   fun tasksDataSource(): DataSource =
-    buildDataSource("SqliteTaskPool", SQLiteDataSource::class.java, komgaProperties.tasksDb)
+    buildDataSource("SqliteTasksPool", SQLiteDataSource::class.java, komgaProperties.tasksDb)
       .apply {
         // force pool size to 1 for tasks datasource
         this.maximumPoolSize = 1
@@ -47,7 +47,10 @@ class DataSourcesConfiguration(
         .type(dataSourceClass)
         .build()
 
-    dataSource.setEnforceForeignKeys(true)
+    with(dataSource) {
+      setEnforceForeignKeys(true)
+      setGetGeneratedKeys(false)
+    }
     with(databaseProps) {
       journalMode?.let { dataSource.setJournalMode(it.name) }
       busyTimeout?.let { dataSource.config.busyTimeout = it.toMillis().toInt() }

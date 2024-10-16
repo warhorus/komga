@@ -37,6 +37,9 @@ class PageHashDao(
       "matchCount" to DSL.field("count"),
       "deleteCount" to ph.DELETE_COUNT,
       "deleteSize" to ph.SIZE * ph.DELETE_COUNT,
+      "fileSize" to ph.SIZE,
+      "createdDate" to ph.CREATED_DATE,
+      "lastModifiedDate" to ph.LAST_MODIFIED_DATE,
     )
 
   private val sortsUnknown =
