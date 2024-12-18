@@ -12,8 +12,8 @@ import org.gotson.komga.application.tasks.HIGHEST_PRIORITY
 import org.gotson.komga.application.tasks.HIGH_PRIORITY
 import org.gotson.komga.application.tasks.LOWEST_PRIORITY
 import org.gotson.komga.application.tasks.TaskEmitter
-import org.gotson.komga.domain.model.BookSearch
 import org.gotson.komga.domain.model.Author
+import org.gotson.komga.domain.model.BookSearch
 import org.gotson.komga.domain.model.Dimension
 import org.gotson.komga.domain.model.DomainEvent
 import org.gotson.komga.domain.model.ImageConversionException
@@ -33,7 +33,6 @@ import org.gotson.komga.domain.persistence.BookMetadataRepository
 import org.gotson.komga.domain.persistence.BookRepository
 import org.gotson.komga.domain.persistence.MediaRepository
 import org.gotson.komga.domain.persistence.ReadListRepository
-import org.gotson.komga.domain.persistence.ReadProgressRepository
 import org.gotson.komga.domain.persistence.ThumbnailBookRepository
 import org.gotson.komga.domain.service.BookAnalyzer
 import org.gotson.komga.domain.service.BookLifecycle
@@ -99,6 +98,7 @@ import org.springframework.web.server.ResponseStatusException
 import java.nio.file.NoSuchFileException
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.ZonedDateTime
 
 private val logger = KotlinLogging.logger {}
 
@@ -109,7 +109,6 @@ class BookController(
   private val bookAnalyzer: BookAnalyzer,
   private val bookLifecycle: BookLifecycle,
   private val bookRepository: BookRepository,
-  private val readProgressRepository: ReadProgressRepository,
   private val bookMetadataRepository: BookMetadataRepository,
   private val mediaRepository: MediaRepository,
   private val bookDtoRepository: BookDtoRepository,
@@ -136,7 +135,6 @@ class BookController(
     releasedAfter: LocalDate? = null,
     @RequestParam(name = "tag", required = false) tags: List<String>? = null,
     @RequestParam(name = "unpaged", required = false) unpaged: Boolean = false,
-    @RequestParam(name = "series_prefix", required = false) seriesPrefix: String? = null,
     @RequestParam(name = "publisher", required = false) publishers: List<String>? = null,
     @RequestParam(name = "release_year", required = false) releaseYears: List<String>? = null,
     @RequestParam(name = "sharing_label", required = false) sharingLabels: List<String>? = null,
@@ -171,6 +169,24 @@ class BookController(
             if (!mediaStatus.isNullOrEmpty()) add(SearchCondition.AnyOfBook(mediaStatus.map { SearchCondition.MediaStatus(SearchOperator.Is(it)) }))
             if (!readStatus.isNullOrEmpty()) add(SearchCondition.AnyOfBook(readStatus.map { SearchCondition.ReadStatus(SearchOperator.Is(it)) }))
             if (!tags.isNullOrEmpty()) add(SearchCondition.AnyOfBook(tags.map { SearchCondition.Tag(SearchOperator.Is(it)) }))
+            if (!publishers.isNullOrEmpty()) add(SearchCondition.AnyOfBook(publishers.map { SearchCondition.Publisher(SearchOperator.Is(it)) }))
+            if (!sharingLabels.isNullOrEmpty()) add(SearchCondition.AnyOfBook(sharingLabels.map { SearchCondition.SharingLabel(SearchOperator.Is(it)) }))
+            if (!languages.isNullOrEmpty()) add(SearchCondition.AnyOfBook(languages.map { SearchCondition.Language(SearchOperator.Is(it)) }))
+            if (!genres.isNullOrEmpty()) add(SearchCondition.AnyOfBook(genres.map { SearchCondition.Genre(SearchOperator.Is(it)) }))
+            if (!ageRatings.isNullOrEmpty()) add(SearchCondition.AnyOfBook(ageRatings.map { it.toIntOrNull()?.let { ageRating -> SearchCondition.AgeRating(SearchOperator.Is(ageRating)) } ?: SearchCondition.AgeRating(SearchOperator.IsNullT()) }))
+            if (!authors.isNullOrEmpty()) add(SearchCondition.AnyOfBook(authors.map { SearchCondition.Author(SearchOperator.Is(SearchCondition.AuthorMatch(it.name, it.role))) }))
+            if (!releaseYears.isNullOrEmpty())
+              add(
+                SearchCondition.AnyOfBook(
+                  releaseYears.mapNotNull { it.toIntOrNull() }.map { releaseYear ->
+                    SearchCondition.AllOfBook(
+                      SearchCondition.ReleaseDate(SearchOperator.After(ZonedDateTime.of(releaseYear - 1, 12, 31, 12, 0, 0, 0, ZoneOffset.UTC))),
+                      SearchCondition.ReleaseDate(SearchOperator.Before(ZonedDateTime.of(releaseYear + 1, 1, 1, 12, 0, 0, 0, ZoneOffset.UTC))),
+                    )
+                  },
+                ),
+              )
+
             releasedAfter?.let { add(SearchCondition.ReleaseDate(SearchOperator.After(it.atStartOfDay(ZoneOffset.UTC)))) }
           },
         ),

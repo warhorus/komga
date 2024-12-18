@@ -77,11 +77,49 @@ class BookSearchHelper(
             RequiredJoin.BookMetadata,
           )
 
+      is SearchCondition.AgeRating -> searchCondition.operator.toCondition(Tables.SERIES_METADATA.AGE_RATING) to setOf(RequiredJoin.SeriesMetadata)
+
       is SearchCondition.Deleted ->
         Tables.BOOK.DELETED_DATE.let {
           when (searchCondition.operator) {
             SearchOperator.IsFalse -> it.isNull
             SearchOperator.IsTrue -> it.isNotNull
+          }
+        } to emptySet()
+
+      is SearchCondition.Genre ->
+        Tables.BOOK.SERIES_ID.let { field ->
+          val inner = { genre: String ->
+            DSL
+              .select(Tables.SERIES_METADATA_GENRE.SERIES_ID)
+              .from(Tables.SERIES_METADATA_GENRE)
+              .where(
+                Tables.SERIES_METADATA_GENRE.GENRE
+                  .collate(SqliteUdfDataSource.COLLATION_UNICODE_3)
+                  .equalIgnoreCase(genre),
+              )
+          }
+          when (searchCondition.operator) {
+            is SearchOperator.Is -> field.`in`(inner(searchCondition.operator.value))
+            is SearchOperator.IsNot -> field.notIn(inner(searchCondition.operator.value))
+          }
+        } to emptySet()
+
+      is SearchCondition.Language ->
+        Tables.BOOK.SERIES_ID.let { field ->
+          val inner = { language: String ->
+            DSL
+              .select(Tables.SERIES_METADATA.SERIES_ID)
+              .from(Tables.SERIES_METADATA)
+              .where(
+                Tables.SERIES_METADATA.LANGUAGE
+                  .collate(SqliteUdfDataSource.COLLATION_UNICODE_3)
+                  .equalIgnoreCase(language),
+              )
+          }
+          when (searchCondition.operator) {
+            is SearchOperator.Is -> field.`in`(inner(searchCondition.operator.value))
+            is SearchOperator.IsNot -> field.notIn(inner(searchCondition.operator.value))
           }
         } to emptySet()
 
@@ -136,6 +174,42 @@ class BookSearchHelper(
           }
         } to setOf(RequiredJoin.Media)
 
+      is SearchCondition.Publisher ->
+        Tables.BOOK.SERIES_ID.let { field ->
+          val inner = { tag: String ->
+            DSL
+              .select(Tables.SERIES_METADATA.SERIES_ID)
+              .from(Tables.SERIES_METADATA)
+              .where(
+                Tables.SERIES_METADATA.PUBLISHER
+                  .collate(SqliteUdfDataSource.COLLATION_UNICODE_3)
+                  .equalIgnoreCase(tag),
+              )
+          }
+          when (searchCondition.operator) {
+            is SearchOperator.Is -> field.`in`(inner(searchCondition.operator.value))
+            is SearchOperator.IsNot -> field.notIn(inner(searchCondition.operator.value))
+          }
+        } to emptySet()
+
+      is SearchCondition.SharingLabel ->
+        Tables.BOOK.SERIES_ID.let { field ->
+          val inner = { label: String ->
+            DSL
+              .select(Tables.SERIES_METADATA_SHARING.SERIES_ID)
+              .from(Tables.SERIES_METADATA_SHARING)
+              .where(
+                Tables.SERIES_METADATA_SHARING.LABEL
+                  .collate(SqliteUdfDataSource.COLLATION_UNICODE_3)
+                  .equalIgnoreCase(label),
+              )
+          }
+          when (searchCondition.operator) {
+            is SearchOperator.Is -> field.`in`(inner(searchCondition.operator.value))
+            is SearchOperator.IsNot -> field.notIn(inner(searchCondition.operator.value))
+          }
+        } to emptySet()
+
       is SearchCondition.Tag ->
         Tables.BOOK.ID.let { field ->
           val inner = { tag: String ->
@@ -153,6 +227,7 @@ class BookSearchHelper(
             is SearchOperator.IsNot -> field.notIn(inner(searchCondition.operator.value))
           }
         } to emptySet()
+
 
       is SearchCondition.Author ->
         Tables.BOOK.ID.let { field ->

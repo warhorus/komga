@@ -388,10 +388,11 @@ class BookDtoDao(
         *d.fields(),
         *r.fields(),
         sd.TITLE,
+        sd.PUBLISHER,
       )
 
     return dsl
-      .let { if (joinOnReadList) it.selectDistinct(selectFields) else it.select(selectFields) }
+      .selectDistinct(selectFields)
       .from(b)
       .leftJoin(m)
       .on(b.ID.eq(m.BOOK_ID))
@@ -402,6 +403,10 @@ class BookDtoDao(
       .and(readProgressCondition(userId))
       .leftJoin(sd)
       .on(b.SERIES_ID.eq(sd.SERIES_ID))
+      .leftJoin(st).on(b.SERIES_ID.eq(st.SERIES_ID))
+      .leftJoin(sg).on(b.SERIES_ID.eq(sg.SERIES_ID))
+      .leftJoin(bt).on(b.ID.eq(bt.BOOK_ID))
+      .leftJoin(sl).on(b.SERIES_ID.eq(sl.SERIES_ID))
       .apply {
         if (joinOnReadList) leftJoin(rlb).on(b.ID.eq(rlb.BOOK_ID))
         joins.forEach { join ->
@@ -498,6 +503,10 @@ class BookDtoDao(
     metadata: BookMetadataDto,
     readProgress: ReadProgressDto?,
     seriesTitle: String,
+    publisher: String,
+    seriesTags: Set<String>?,
+    seriesGenres: Set<String>?,
+    seriesSharingLabels: Set<String>?,
   ) = BookDto(
     id = id,
     seriesId = seriesId,
@@ -516,6 +525,10 @@ class BookDtoDao(
     deleted = deletedDate != null,
     fileHash = fileHash,
     oneshot = oneshot,
+    publisher = publisher,
+    seriesTags = seriesTags,
+    seriesGenres = seriesGenres,
+    seriesSharingLabels = seriesSharingLabels,
   )
 
   private fun MediaRecord.toDto() =
