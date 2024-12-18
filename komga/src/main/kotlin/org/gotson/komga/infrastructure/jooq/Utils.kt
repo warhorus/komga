@@ -2,10 +2,8 @@ package org.gotson.komga.infrastructure.jooq
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.gotson.komga.domain.model.AllowExclude
-import org.gotson.komga.domain.model.BookSearch
 import org.gotson.komga.domain.model.ContentRestrictions
 import org.gotson.komga.domain.model.MediaExtension
-import org.gotson.komga.domain.model.MediaType
 import org.gotson.komga.infrastructure.datasource.SqliteUdfDataSource
 import org.gotson.komga.jooq.main.Tables
 import org.jooq.Condition
@@ -47,8 +45,7 @@ fun Field<String>.inOrNoCondition(list: Collection<String>?): Condition =
     else -> this.`in`(list)
   }
 
-fun Field<String>.udfStripAccents() =
-  DSL.function(SqliteUdfDataSource.UDF_STRIP_ACCENTS, String::class.java, this)
+fun Field<String>.udfStripAccents() = DSL.function(SqliteUdfDataSource.UDF_STRIP_ACCENTS, String::class.java, this)
 
 fun DSLContext.insertTempStrings(
   batchSize: Int,
@@ -57,38 +54,25 @@ fun DSLContext.insertTempStrings(
   this.deleteFrom(Tables.TEMP_STRING_LIST).execute()
   if (collection.isNotEmpty()) {
     collection.chunked(batchSize).forEach { chunk ->
-      this.batch(
-        this.insertInto(Tables.TEMP_STRING_LIST, Tables.TEMP_STRING_LIST.STRING).values(null as String?),
-      ).also { step ->
-        chunk.forEach {
-          step.bind(it)
-        }
-      }.execute()
+      this
+        .batch(
+          this.insertInto(Tables.TEMP_STRING_LIST, Tables.TEMP_STRING_LIST.STRING).values(null as String?),
+        ).also { step ->
+          chunk.forEach {
+            step.bind(it)
+          }
+        }.execute()
     }
   }
 }
 
 fun DSLContext.selectTempStrings() = this.select(Tables.TEMP_STRING_LIST.STRING).from(Tables.TEMP_STRING_LIST)
 
-fun BookSearch.toCondition(): Condition {
-  var c: Condition = DSL.noCondition()
-
-  if (libraryIds != null) c = c.and(Tables.BOOK.LIBRARY_ID.`in`(libraryIds))
-  if (!seriesIds.isNullOrEmpty()) c = c.and(Tables.BOOK.SERIES_ID.`in`(seriesIds))
-  searchTerm?.let { c = c.and(Tables.BOOK_METADATA.TITLE.containsIgnoreCase(it)) }
-  if (!mediaStatus.isNullOrEmpty()) c = c.and(Tables.MEDIA.STATUS.`in`(mediaStatus))
-  if (!mediaProfile.isNullOrEmpty()) c = c.and(Tables.MEDIA.MEDIA_TYPE.`in`(mediaProfile.flatMap { profile -> MediaType.matchingMediaProfile(profile).map { it.type } }.toSet()))
-  if (deleted == true) c = c.and(Tables.BOOK.DELETED_DATE.isNotNull)
-  if (deleted == false) c = c.and(Tables.BOOK.DELETED_DATE.isNull)
-  if (releasedAfter != null) c = c.and(Tables.BOOK_METADATA.RELEASE_DATE.gt(releasedAfter))
-
-  return c
-}
-
-fun ContentRestrictions.toCondition(dsl: DSLContext): Condition {
+fun ContentRestrictions.toCondition(): Condition {
   val ageAllowed =
     if (ageRestriction?.restriction == AllowExclude.ALLOW_ONLY) {
-      Tables.SERIES_METADATA.AGE_RATING.isNotNull.and(Tables.SERIES_METADATA.AGE_RATING.lessOrEqual(ageRestriction.age))
+      Tables.SERIES_METADATA.AGE_RATING.isNotNull
+        .and(Tables.SERIES_METADATA.AGE_RATING.lessOrEqual(ageRestriction.age))
     } else {
       DSL.noCondition()
     }
@@ -96,7 +80,8 @@ fun ContentRestrictions.toCondition(dsl: DSLContext): Condition {
   val labelAllowed =
     if (labelsAllow.isNotEmpty())
       Tables.SERIES_METADATA.SERIES_ID.`in`(
-        dsl.select(Tables.SERIES_METADATA_SHARING.SERIES_ID)
+        DSL
+          .select(Tables.SERIES_METADATA_SHARING.SERIES_ID)
           .from(Tables.SERIES_METADATA_SHARING)
           .where(Tables.SERIES_METADATA_SHARING.LABEL.`in`(labelsAllow)),
       )
@@ -105,21 +90,24 @@ fun ContentRestrictions.toCondition(dsl: DSLContext): Condition {
 
   val ageDenied =
     if (ageRestriction?.restriction == AllowExclude.EXCLUDE)
-      Tables.SERIES_METADATA.AGE_RATING.isNull.or(Tables.SERIES_METADATA.AGE_RATING.lessThan(ageRestriction.age))
+      Tables.SERIES_METADATA.AGE_RATING.isNull
+        .or(Tables.SERIES_METADATA.AGE_RATING.lessThan(ageRestriction.age))
     else
       DSL.noCondition()
 
   val labelDenied =
     if (labelsExclude.isNotEmpty())
       Tables.SERIES_METADATA.SERIES_ID.notIn(
-        dsl.select(Tables.SERIES_METADATA_SHARING.SERIES_ID)
+        DSL
+          .select(Tables.SERIES_METADATA_SHARING.SERIES_ID)
           .from(Tables.SERIES_METADATA_SHARING)
           .where(Tables.SERIES_METADATA_SHARING.LABEL.`in`(labelsExclude)),
       )
     else
       DSL.noCondition()
 
-  return ageAllowed.or(labelAllowed)
+  return ageAllowed
+    .or(labelAllowed)
     .and(ageDenied.and(labelDenied))
 }
 

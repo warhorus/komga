@@ -1,9 +1,11 @@
 package org.gotson.komga.infrastructure.jooq.main
 
+import org.gotson.komga.domain.model.SearchCondition
+import org.gotson.komga.domain.model.SearchContext
 import org.gotson.komga.domain.model.Series
-import org.gotson.komga.domain.model.SeriesSearch
 import org.gotson.komga.domain.persistence.SeriesRepository
-import org.gotson.komga.infrastructure.datasource.SqliteUdfDataSource
+import org.gotson.komga.infrastructure.jooq.RequiredJoin
+import org.gotson.komga.infrastructure.jooq.SeriesSearchHelper
 import org.gotson.komga.infrastructure.jooq.insertTempStrings
 import org.gotson.komga.infrastructure.jooq.selectTempStrings
 import org.gotson.komga.jooq.main.Tables
@@ -13,6 +15,11 @@ import org.jooq.Condition
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URL
@@ -26,22 +33,26 @@ class SeriesDao(
 ) : SeriesRepository {
   private val s = Tables.SERIES
   private val d = Tables.SERIES_METADATA
+  private val rs = Tables.READ_PROGRESS_SERIES
   private val cs = Tables.COLLECTION_SERIES
-  private val l = Tables.LIBRARY
+  private val bma = Tables.BOOK_METADATA_AGGREGATION
 
   override fun findAll(): Collection<Series> =
-    dsl.selectFrom(s)
+    dsl
+      .selectFrom(s)
       .fetchInto(s)
       .map { it.toDomain() }
 
   override fun findByIdOrNull(seriesId: String): Series? =
-    dsl.selectFrom(s)
+    dsl
+      .selectFrom(s)
       .where(s.ID.eq(seriesId))
       .fetchOneInto(s)
       ?.toDomain()
 
   override fun findAllByLibraryId(libraryId: String): List<Series> =
-    dsl.selectFrom(s)
+    dsl
+      .selectFrom(s)
       .where(s.LIBRARY_ID.eq(libraryId))
       .fetchInto(s)
       .map { it.toDomain() }
@@ -53,7 +64,8 @@ class SeriesDao(
   ): List<Series> {
     dsl.insertTempStrings(batchSize, urls.map { it.toString() })
 
-    return dsl.selectFrom(s)
+    return dsl
+      .selectFrom(s)
       .where(s.LIBRARY_ID.eq(libraryId))
       .and(s.DELETED_DATE.isNull)
       .and(s.URL.notIn(dsl.selectTempStrings()))
@@ -65,7 +77,8 @@ class SeriesDao(
     libraryId: String,
     url: URL,
   ): Series? =
-    dsl.selectFrom(s)
+    dsl
+      .selectFrom(s)
       .where(s.LIBRARY_ID.eq(libraryId).and(s.URL.eq(url.toString())))
       .and(s.DELETED_DATE.isNull)
       .orderBy(s.LAST_MODIFIED_DATE.desc())
@@ -74,39 +87,80 @@ class SeriesDao(
       ?.toDomain()
 
   override fun findAllByTitleContaining(title: String): Collection<Series> =
-    dsl.selectDistinct(*s.fields())
+    dsl
+      .selectDistinct(*s.fields())
       .from(s)
-      .leftJoin(d).on(s.ID.eq(d.SERIES_ID))
+      .leftJoin(d)
+      .on(s.ID.eq(d.SERIES_ID))
       .where(d.TITLE.containsIgnoreCase(title))
       .fetchInto(s)
       .map { it.toDomain() }
 
   override fun getLibraryId(seriesId: String): String? =
-    dsl.select(s.LIBRARY_ID)
+    dsl
+      .select(s.LIBRARY_ID)
       .from(s)
       .where(s.ID.eq(seriesId))
       .fetchOne(0, String::class.java)
 
   override fun findAllIdsByLibraryId(libraryId: String): Collection<String> =
-    dsl.select(s.ID)
+    dsl
+      .select(s.ID)
       .from(s)
       .where(s.LIBRARY_ID.eq(libraryId))
       .fetch(s.ID)
 
-  override fun findAll(search: SeriesSearch): Collection<Series> {
-    val conditions = search.toCondition()
+  override fun findAll(
+    searchCondition: SearchCondition.Series?,
+    searchContext: SearchContext,
+    pageable: Pageable,
+  ): Page<Series> {
+    val (conditions, joins) = SeriesSearchHelper(searchContext).toCondition(searchCondition)
+    return findAll(conditions, joins, pageable)
+  }
 
-    return dsl.selectDistinct(*s.fields())
-      .from(s)
-      .leftJoin(cs).on(s.ID.eq(cs.SERIES_ID))
-      .leftJoin(d).on(s.ID.eq(d.SERIES_ID))
-      .where(conditions)
-      .fetchInto(s)
-      .map { it.toDomain() }
+  private fun findAll(
+    conditions: Condition,
+    joins: Set<RequiredJoin>,
+    pageable: Pageable,
+  ): Page<Series> {
+    val query =
+      dsl
+        .selectDistinct(*s.fields())
+        .from(s)
+        .apply {
+          joins.forEach { join ->
+            when (join) {
+              RequiredJoin.BookMetadataAggregation -> leftJoin(bma).on(s.ID.eq(bma.SERIES_ID))
+              RequiredJoin.SeriesMetadata -> innerJoin(d).on(s.ID.eq(d.SERIES_ID))
+              is RequiredJoin.ReadProgress -> leftJoin(rs).on(rs.SERIES_ID.eq(s.ID)).and(rs.USER_ID.eq(join.userId))
+              // Book joins - not needed
+              RequiredJoin.BookMetadata -> Unit
+              RequiredJoin.Media -> Unit
+            }
+          }
+        }.where(conditions)
+
+    val count = dsl.fetchCount(query)
+    val items =
+      query
+        .apply { if (pageable.isPaged) limit(pageable.pageSize).offset(pageable.offset) }
+        .fetchInto(s)
+        .map { it.toDomain() }
+
+    return PageImpl(
+      items,
+      if (pageable.isPaged)
+        PageRequest.of(pageable.pageNumber, pageable.pageSize, Sort.unsorted())
+      else
+        PageRequest.of(0, maxOf(count, 20), Sort.unsorted()),
+      count.toLong(),
+    )
   }
 
   override fun insert(series: Series) {
-    dsl.insertInto(s)
+    dsl
+      .insertInto(s)
       .set(s.ID, series.id)
       .set(s.NAME, series.name)
       .set(s.URL, series.url.toString())
@@ -121,7 +175,8 @@ class SeriesDao(
     series: Series,
     updateModifiedTime: Boolean,
   ) {
-    dsl.update(s)
+    dsl
+      .update(s)
       .set(s.NAME, series.name)
       .set(s.URL, series.url.toString())
       .set(s.FILE_LAST_MODIFIED, series.fileLastModified)
@@ -152,32 +207,11 @@ class SeriesDao(
   override fun count(): Long = dsl.fetchCount(s).toLong()
 
   override fun countGroupedByLibraryId(): Map<String, Int> =
-    dsl.select(s.LIBRARY_ID, DSL.count(s.ID))
+    dsl
+      .select(s.LIBRARY_ID, DSL.count(s.ID))
       .from(s)
       .groupBy(s.LIBRARY_ID)
       .fetchMap(s.LIBRARY_ID, DSL.count(s.ID))
-
-  private fun SeriesSearch.toCondition(): Condition {
-    var c: Condition = DSL.trueCondition()
-
-    if (libraryIds != null) c = c.and(s.LIBRARY_ID.`in`(libraryIds))
-    if (!collectionIds.isNullOrEmpty()) c = c.and(cs.COLLECTION_ID.`in`(collectionIds))
-    searchTerm?.let { c = c.and(d.TITLE.containsIgnoreCase(it)) }
-    searchRegex?.let { c = c.and((it.second.toColumn()).likeRegex(it.first)) }
-    if (!metadataStatus.isNullOrEmpty()) c = c.and(d.STATUS.`in`(metadataStatus))
-    if (!publishers.isNullOrEmpty()) c = c.and(d.PUBLISHER.collate(SqliteUdfDataSource.COLLATION_UNICODE_3).`in`(publishers))
-    if (deleted == true) c = c.and(s.DELETED_DATE.isNotNull)
-    if (deleted == false) c = c.and(s.DELETED_DATE.isNull)
-
-    return c
-  }
-
-  private fun SeriesSearch.SearchField.toColumn() =
-    when (this) {
-      SeriesSearch.SearchField.NAME -> s.NAME
-      SeriesSearch.SearchField.TITLE -> d.TITLE
-      SeriesSearch.SearchField.TITLE_SORT -> d.TITLE_SORT
-    }
 
   private fun SeriesRecord.toDomain() =
     Series(

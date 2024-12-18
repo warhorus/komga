@@ -4,6 +4,9 @@ import org.gotson.komga.domain.model.BookSearch
 import org.gotson.komga.domain.model.KomgaUser
 import org.gotson.komga.domain.model.Media
 import org.gotson.komga.domain.model.MediaProfile
+import org.gotson.komga.domain.model.SearchCondition
+import org.gotson.komga.domain.model.SearchContext
+import org.gotson.komga.domain.model.SearchOperator
 import org.gotson.komga.domain.model.SyncPoint
 import org.gotson.komga.domain.persistence.SyncPointRepository
 import org.springframework.data.domain.Page
@@ -19,20 +22,32 @@ class SyncPointLifecycle(
     apiKeyId: String?,
     libraryIds: List<String>?,
   ): SyncPoint {
-    val authorizedLibraryIds = user.getAuthorizedLibraryIds(libraryIds)
-    val syncPoint =
-      syncPointRepository.create(
-        user,
-        apiKeyId,
-        BookSearch(
-          libraryIds = authorizedLibraryIds,
-          mediaStatus = setOf(Media.Status.READY),
-          mediaProfile = listOf(MediaProfile.EPUB),
-          deleted = false,
-        ),
-      )
+    val context = SearchContext(user)
 
-    syncPointRepository.addOnDeck(syncPoint.id, user, authorizedLibraryIds)
+    val syncPoint =
+      syncPointRepository
+        .create(
+          apiKeyId,
+          BookSearch(
+            SearchCondition.AllOfBook(
+              buildList {
+                libraryIds?.let {
+                  add(
+                    SearchCondition.AnyOfBook(
+                      it.map { libraryId -> SearchCondition.LibraryId(SearchOperator.Is(libraryId)) },
+                    ),
+                  )
+                }
+                add(SearchCondition.MediaStatus(SearchOperator.Is(Media.Status.READY)))
+                add(SearchCondition.MediaProfile(SearchOperator.Is(MediaProfile.EPUB)))
+                add(SearchCondition.Deleted(SearchOperator.IsFalse))
+              },
+            ),
+          ),
+          context,
+        )
+
+    syncPointRepository.addOnDeck(syncPoint.id, context, libraryIds)
 
     return syncPoint
   }
@@ -44,7 +59,8 @@ class SyncPointLifecycle(
     toSyncPointId: String,
     pageable: Pageable,
   ): Page<SyncPoint.Book> =
-    syncPointRepository.findBooksById(toSyncPointId, true, pageable)
+    syncPointRepository
+      .findBooksById(toSyncPointId, true, pageable)
       .also { page -> syncPointRepository.markBooksSynced(toSyncPointId, false, page.content.map { it.bookId }) }
 
   /**
@@ -55,7 +71,8 @@ class SyncPointLifecycle(
     toSyncPointId: String,
     pageable: Pageable,
   ): Page<SyncPoint.Book> =
-    syncPointRepository.findBooksAdded(fromSyncPointId, toSyncPointId, true, pageable)
+    syncPointRepository
+      .findBooksAdded(fromSyncPointId, toSyncPointId, true, pageable)
       .also { page -> syncPointRepository.markBooksSynced(toSyncPointId, false, page.content.map { it.bookId }) }
 
   /**
@@ -66,7 +83,8 @@ class SyncPointLifecycle(
     toSyncPointId: String,
     pageable: Pageable,
   ): Page<SyncPoint.Book> =
-    syncPointRepository.findBooksChanged(fromSyncPointId, toSyncPointId, true, pageable)
+    syncPointRepository
+      .findBooksChanged(fromSyncPointId, toSyncPointId, true, pageable)
       .also { page -> syncPointRepository.markBooksSynced(toSyncPointId, false, page.content.map { it.bookId }) }
 
   /**
@@ -77,7 +95,8 @@ class SyncPointLifecycle(
     toSyncPointId: String,
     pageable: Pageable,
   ): Page<SyncPoint.Book> =
-    syncPointRepository.findBooksRemoved(fromSyncPointId, toSyncPointId, true, pageable)
+    syncPointRepository
+      .findBooksRemoved(fromSyncPointId, toSyncPointId, true, pageable)
       .also { page -> syncPointRepository.markBooksSynced(toSyncPointId, true, page.content.map { it.bookId }) }
 
   /**
@@ -88,14 +107,16 @@ class SyncPointLifecycle(
     toSyncPointId: String,
     pageable: Pageable,
   ): Page<SyncPoint.Book> =
-    syncPointRepository.findBooksReadProgressChanged(fromSyncPointId, toSyncPointId, true, pageable)
+    syncPointRepository
+      .findBooksReadProgressChanged(fromSyncPointId, toSyncPointId, true, pageable)
       .also { page -> syncPointRepository.markBooksSynced(toSyncPointId, false, page.content.map { it.bookId }) }
 
   fun takeReadLists(
     toSyncPointId: String,
     pageable: Pageable,
   ): Page<SyncPoint.ReadList> =
-    syncPointRepository.findReadListsById(toSyncPointId, true, pageable)
+    syncPointRepository
+      .findReadListsById(toSyncPointId, true, pageable)
       .also { page -> syncPointRepository.markReadListsSynced(toSyncPointId, false, page.content.map { it.readListId }) }
 
   fun takeReadListsAdded(
@@ -103,7 +124,8 @@ class SyncPointLifecycle(
     toSyncPointId: String,
     pageable: Pageable,
   ): Page<SyncPoint.ReadList> =
-    syncPointRepository.findReadListsAdded(fromSyncPointId, toSyncPointId, true, pageable)
+    syncPointRepository
+      .findReadListsAdded(fromSyncPointId, toSyncPointId, true, pageable)
       .also { page -> syncPointRepository.markReadListsSynced(toSyncPointId, false, page.content.map { it.readListId }) }
 
   fun takeReadListsChanged(
@@ -111,7 +133,8 @@ class SyncPointLifecycle(
     toSyncPointId: String,
     pageable: Pageable,
   ): Page<SyncPoint.ReadList> =
-    syncPointRepository.findReadListsChanged(fromSyncPointId, toSyncPointId, true, pageable)
+    syncPointRepository
+      .findReadListsChanged(fromSyncPointId, toSyncPointId, true, pageable)
       .also { page -> syncPointRepository.markReadListsSynced(toSyncPointId, false, page.content.map { it.readListId }) }
 
   fun takeReadListsRemoved(
@@ -119,6 +142,7 @@ class SyncPointLifecycle(
     toSyncPointId: String,
     pageable: Pageable,
   ): Page<SyncPoint.ReadList> =
-    syncPointRepository.findReadListsRemoved(fromSyncPointId, toSyncPointId, true, pageable)
+    syncPointRepository
+      .findReadListsRemoved(fromSyncPointId, toSyncPointId, true, pageable)
       .also { page -> syncPointRepository.markReadListsSynced(toSyncPointId, true, page.content.map { it.readListId }) }
 }

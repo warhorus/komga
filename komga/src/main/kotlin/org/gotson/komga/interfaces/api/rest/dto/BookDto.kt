@@ -35,8 +35,7 @@ data class BookDto(
   var seriesSharingLabels: Set<String>?,
 )
 
-fun BookDto.restrictUrl(restrict: Boolean) =
-  if (restrict) copy(url = FilenameUtils.getName(url)) else this
+fun BookDto.restrictUrl(restrict: Boolean) = if (restrict) copy(url = FilenameUtils.getName(url)) else this
 
 data class MediaDto(
   val status: String,

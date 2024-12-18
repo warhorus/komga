@@ -11,6 +11,7 @@ import org.gotson.komga.domain.model.Media
 import org.gotson.komga.domain.model.PathContainedInPath
 import org.gotson.komga.domain.model.Series
 import org.gotson.komga.domain.model.Sidecar
+import org.gotson.komga.domain.model.ThumbnailBook
 import org.gotson.komga.domain.model.withCode
 import org.gotson.komga.domain.persistence.BookMetadataRepository
 import org.gotson.komga.domain.persistence.BookRepository
@@ -20,6 +21,7 @@ import org.gotson.komga.domain.persistence.MediaRepository
 import org.gotson.komga.domain.persistence.ReadListRepository
 import org.gotson.komga.domain.persistence.ReadProgressRepository
 import org.gotson.komga.domain.persistence.SidecarRepository
+import org.gotson.komga.domain.persistence.ThumbnailBookRepository
 import org.gotson.komga.language.toIndexedMap
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
@@ -52,6 +54,7 @@ class BookImporter(
   private val bookRepository: BookRepository,
   private val mediaRepository: MediaRepository,
   private val metadataRepository: BookMetadataRepository,
+  private val thumbnailBookRepository: ThumbnailBookRepository,
   private val readProgressRepository: ReadProgressRepository,
   private val readListRepository: ReadListRepository,
   private val libraryRepository: LibraryRepository,
@@ -86,9 +89,16 @@ class BookImporter(
         fileSystemScanner.scanBookSidecars(sourceFile).associateWith {
           series.path.resolve(
             if (destinationName != null)
-              it.url.toURI().toPath().name.replace(sourceFile.nameWithoutExtension, destinationName, true)
+              it.url
+                .toURI()
+                .toPath()
+                .name
+                .replace(sourceFile.nameWithoutExtension, destinationName, true)
             else
-              it.url.toURI().toPath().name,
+              it.url
+                .toURI()
+                .toPath()
+                .name,
           )
         }
 
@@ -163,13 +173,17 @@ class BookImporter(
             logger.warn(e) { "Filesystem does not support hardlinks, copying instead" }
             sourceFile.copyTo(destFile)
             sidecars.forEach {
-              it.key.url.toURI().toPath().copyTo(it.value, true)
+              it.key.url
+                .toURI()
+                .toPath()
+                .copyTo(it.value, true)
             }
           }
       }
 
       val importedBook =
-        fileSystemScanner.scanFile(destFile)
+        fileSystemScanner
+          .scanFile(destFile)
           ?.copy(libraryId = series.libraryId)
           ?: throw IllegalStateException("Newly imported book could not be scanned: $destFile").withCode("ERR_1022")
 
@@ -191,17 +205,27 @@ class BookImporter(
           metadataRepository.update(it.copy(bookId = importedBook.id))
         }
 
+        // copy user uploaded thumbnails
+        thumbnailBookRepository.findAllByBookIdAndType(bookToUpgrade.id, setOf(ThumbnailBook.Type.USER_UPLOADED)).forEach { deleted ->
+          thumbnailBookRepository.update(deleted.copy(bookId = importedBook.id))
+        }
+
         // copy read progress
-        readProgressRepository.findAllByBookId(bookToUpgrade.id)
+        readProgressRepository
+          .findAllByBookId(bookToUpgrade.id)
           .map { it.copy(bookId = importedBook.id) }
           .forEach { readProgressRepository.save(it) }
 
         // replace upgraded book by imported book in read lists
-        readListRepository.findAllContainingBookId(bookToUpgrade.id, filterOnLibraryIds = null)
+        readListRepository
+          .findAllContainingBookId(bookToUpgrade.id, filterOnLibraryIds = null)
           .forEach { rl ->
             readListRepository.update(
               rl.copy(
-                bookIds = rl.bookIds.values.map { if (it == bookToUpgrade.id) importedBook.id else it }.toIndexedMap(),
+                bookIds =
+                  rl.bookIds.values
+                    .map { if (it == bookToUpgrade.id) importedBook.id else it }
+                    .toIndexedMap(),
               ),
             )
           }

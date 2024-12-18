@@ -12,6 +12,7 @@ logging:
   level:
     org.apache.activemq.audit: WARN
     org.apache.fontbox.cff.Type1CharString: ERROR
+    org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer: ERROR
 
 komga:
   database:
@@ -76,7 +77,7 @@ management:
       roles: ADMIN
       show-details: when_authorized
     shutdown:
-      enabled: true
+      access: unrestricted
   info:
     java:
       enabled: true
