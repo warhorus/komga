@@ -65,6 +65,9 @@ class BookDtoDao(
   private val rlb = Tables.READLIST_BOOK
   private val bt = Tables.BOOK_METADATA_TAG
   private val bl = Tables.BOOK_METADATA_LINK
+  private val st = Tables.SERIES_METADATA_TAG
+  private val sg = Tables.SERIES_METADATA_GENRE
+  private val sl = Tables.SERIES_METADATA_SHARING
 
   private val onDeckFields = b.fields() + m.fields() + d.fields() + r.fields() + sd.TITLE
 
@@ -421,6 +424,9 @@ class BookDtoDao(
 
     lateinit var authors: Map<String, List<AuthorDto>>
     lateinit var tags: Map<String, List<String>>
+    lateinit var seriesTags: Map<String, List<String>>
+    lateinit var seriesGenres: Map<String, List<String>>
+    lateinit var seriesSharingLabels: Map<String, List<String>>
     lateinit var links: Map<String, List<WebLinkDto>>
     transactionTemplate.executeWithoutResult {
       dsl.insertTempStrings(batchSize, bookIds)
@@ -442,6 +448,27 @@ class BookDtoDao(
           .selectFrom(bl)
           .where(bl.BOOK_ID.`in`(dsl.selectTempStrings()))
           .groupBy({ it.bookId }, { WebLinkDto(it.label, it.url) })
+
+      seriesTags =
+        dsl.select(st)
+          .from(st)
+          .innerJoin(b).on(b.SERIES_ID.eq(st.SERIES_ID))
+          .where(b.ID.`in`(dsl.selectTempStrings()))
+          .groupBy({ it.value1().seriesId }, { it.value1().tag })
+
+      seriesGenres =
+        dsl.select(sg)
+          .from(sg)
+          .innerJoin(b).on(b.SERIES_ID.eq(sg.SERIES_ID))
+          .where(b.ID.`in`(dsl.selectTempStrings()))
+          .groupBy({ it.value1().seriesId }, { it.value1().genre })
+
+      seriesSharingLabels =
+        dsl.select(sl)
+          .from(sl)
+          .innerJoin(b).on(b.SERIES_ID.eq(sl.SERIES_ID))
+          .where(b.ID.`in`(dsl.selectTempStrings()))
+          .groupBy({ it.value1().seriesId }, { it.value1().label })
     }
 
     return records
@@ -451,8 +478,18 @@ class BookDtoDao(
         val dr = rec.into(d)
         val rr = rec.into(r)
         val seriesTitle = rec.into(sd.TITLE).component1()
+        val publisher = rec.into(sd.PUBLISHER).component1()
 
-        br.toDto(mr.toDto(), dr.toDto(authors[br.id].orEmpty(), tags[br.id].orEmpty().toSet(), links[br.id].orEmpty()), if (rr.userId != null) rr.toDto() else null, seriesTitle)
+        br.toDto(
+          mr.toDto(),
+          dr.toDto(authors[br.id].orEmpty(), tags[br.id].orEmpty().toSet(), links[br.id].orEmpty()),
+          if (rr.userId != null) rr.toDto() else null,
+          seriesTitle,
+          publisher,
+          seriesTags[br.seriesId].orEmpty().toSet(),
+          seriesGenres[br.seriesId].orEmpty().toSet(),
+          seriesSharingLabels[br.seriesId].orEmpty().toSet(),
+        )
       }
   }
 

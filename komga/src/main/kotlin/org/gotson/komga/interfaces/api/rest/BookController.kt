@@ -13,6 +13,7 @@ import org.gotson.komga.application.tasks.HIGH_PRIORITY
 import org.gotson.komga.application.tasks.LOWEST_PRIORITY
 import org.gotson.komga.application.tasks.TaskEmitter
 import org.gotson.komga.domain.model.BookSearch
+import org.gotson.komga.domain.model.Author
 import org.gotson.komga.domain.model.Dimension
 import org.gotson.komga.domain.model.DomainEvent
 import org.gotson.komga.domain.model.ImageConversionException
@@ -40,8 +41,10 @@ import org.gotson.komga.infrastructure.image.ImageAnalyzer
 import org.gotson.komga.infrastructure.jooq.UnpagedSorted
 import org.gotson.komga.infrastructure.mediacontainer.ContentDetector
 import org.gotson.komga.infrastructure.security.KomgaPrincipal
+import org.gotson.komga.infrastructure.swagger.AuthorsAsQueryParam
 import org.gotson.komga.infrastructure.swagger.PageableAsQueryParam
 import org.gotson.komga.infrastructure.swagger.PageableWithoutSortAsQueryParam
+import org.gotson.komga.infrastructure.web.Authors
 import org.gotson.komga.infrastructure.web.getMediaTypeOrDefault
 import org.gotson.komga.interfaces.api.CommonBookController
 import org.gotson.komga.interfaces.api.ContentRestrictionChecker
@@ -120,6 +123,7 @@ class BookController(
   private val commonBookController: CommonBookController,
 ) {
   @PageableAsQueryParam
+  @AuthorsAsQueryParam
   @GetMapping("api/v1/books")
   fun getAllBooks(
     @AuthenticationPrincipal principal: KomgaPrincipal,
@@ -132,6 +136,14 @@ class BookController(
     releasedAfter: LocalDate? = null,
     @RequestParam(name = "tag", required = false) tags: List<String>? = null,
     @RequestParam(name = "unpaged", required = false) unpaged: Boolean = false,
+    @RequestParam(name = "series_prefix", required = false) seriesPrefix: String? = null,
+    @RequestParam(name = "publisher", required = false) publishers: List<String>? = null,
+    @RequestParam(name = "release_year", required = false) releaseYears: List<String>? = null,
+    @RequestParam(name = "sharing_label", required = false) sharingLabels: List<String>? = null,
+    @RequestParam(name = "genre", required = false) genres: List<String>? = null,
+    @RequestParam(name = "language", required = false) languages: List<String>? = null,
+    @RequestParam(name = "age_rating", required = false) ageRatings: List<String>? = null,
+    @Parameter(hidden = true) @Authors authors: List<Author>? = null,
     @Parameter(hidden = true) page: Pageable,
   ): Page<BookDto> {
     val sort =
