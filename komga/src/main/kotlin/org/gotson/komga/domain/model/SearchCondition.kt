@@ -108,27 +108,32 @@ class SearchCondition {
   data class SharingLabel(
     @JsonProperty("sharingLabel")
     val operator: SearchOperator.Equality<String>,
-  ) : Series
+  ) : Book,
+    Series
 
   data class Publisher(
     @JsonProperty("publisher")
     val operator: SearchOperator.Equality<String>,
-  ) : Series
+  ) : Book,
+    Series
 
   data class Language(
     @JsonProperty("language")
     val operator: SearchOperator.Equality<String>,
-  ) : Series
+  ) : Book,
+    Series
 
   data class Genre(
     @JsonProperty("genre")
     val operator: SearchOperator.Equality<String>,
-  ) : Series
+  ) : Book,
+    Series
 
   data class AgeRating(
     @JsonProperty("ageRating")
     val operator: SearchOperator.NumericNullable<Int>,
-  ) : Series
+  ) : Book,
+    Series
 
   data class ReadStatus(
     @JsonProperty("readStatus")

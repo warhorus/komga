@@ -18,6 +18,8 @@
 
       <v-spacer/>
 
+      <library-item-type-select :libraryId="libraryId"/>
+
       <page-size-select v-model="pageSize"/>
 
       <v-btn icon @click="drawer = !drawer">
@@ -132,6 +134,7 @@ import ItemBrowser from '@/components/ItemBrowser.vue'
 import LibraryNavigation from '@/components/LibraryNavigation.vue'
 import LibraryActionsMenu from '@/components/menus/LibraryActionsMenu.vue'
 import PageSizeSelect from '@/components/PageSizeSelect.vue'
+import LibraryItemTypeSelect from '@/components/LibraryItemTypeSelect.vue'
 import {parseQuerySort} from '@/functions/query-params'
 import {ReadStatus} from '@/types/enum-books'
 import {SeriesStatus} from '@/types/enum-series'
@@ -206,6 +209,7 @@ export default Vue.extend({
     ToolbarSticky,
     ItemBrowser,
     PageSizeSelect,
+    LibraryItemTypeSelect,
     LibraryNavigation,
     MultiSelectBar,
     FilterDrawer,

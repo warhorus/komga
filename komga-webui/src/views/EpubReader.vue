@@ -323,6 +323,7 @@ import {getBookReadRouteFromMedia} from '@/functions/book-format'
 import SettingsSelect from '@/components/SettingsSelect.vue'
 import {createR2Progression, r2ProgressionToReadingPosition} from '@/functions/readium'
 import {debounce} from 'lodash'
+import { LIBRARIES_ALL } from '@/types/library'
 
 export default Vue.extend({
   name: 'EpubReader',
@@ -710,10 +711,14 @@ export default Vue.extend({
           id: this.$route.query.contextId as string,
         }
         this.book.context = this.context
+
         if (this?.context.origin === ContextOrigin.READLIST) {
           this.contextName = (await (this.$komgaReadLists.getOneReadList(this.context.id))).name
-          document.title = `Komga - ${this.contextName} - ${this.book.metadata.title}`
+        } else if (this?.context.origin === ContextOrigin.LIBRARY && this?.context.id !== LIBRARIES_ALL) {
+          this.contextName = (await (this.$komgaLibraries.getLibrary(this.context.id))).name
         }
+
+        document.title = `Komga - ${this.contextName} - ${this.book.metadata.title}`
       } else {
         document.title = `Komga - ${getBookTitleCompact(this.book.metadata.title, this.series.metadata.title)}`
       }
