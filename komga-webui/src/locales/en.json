@@ -929,10 +929,12 @@
       "button_scan_libraries": "Scan all libraries",
       "button_scan_libraries_deep": "Scan all libraries (deep)",
       "button_shutdown": "Shut down",
+      "download_log": "Download log file",
       "notification_tasks_cancelled": "No tasks to cancel | One task cancelled | {count} tasks cancelled",
       "section_title": "Server Management"
     },
-    "tab_title": "Server"
+    "tab_title": "Server",
+    "updates": "Updates"
   },
   "server_settings": {
     "config_precedence": "Takes precedence over the configuration file",
@@ -969,12 +971,15 @@
   "sort": {
     "books_count": "Books count",
     "date_added": "Date added",
+    "date_read": "Date read",
     "date_updated": "Date updated",
     "file_name": "Filename",
     "file_size": "File size",
     "folder_name": "Folder name",
     "name": "Name",
     "number": "Number",
+    "page_count": "Page count",
+    "random": "Random",
     "release_date": "Release date"
   },
   "theme": {
@@ -996,6 +1001,10 @@
   "titles_more": {
     "less": "Less titles",
     "more": "More titles"
+  },
+  "updates": {
+    "available": "Updates are available",
+    "latest_installed": "The latest version of Komga is already installed"
   },
   "user_roles": {
     "ADMIN": "Administrator",

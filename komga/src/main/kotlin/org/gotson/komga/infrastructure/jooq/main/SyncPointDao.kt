@@ -100,12 +100,15 @@ class SyncPointDao(
           .apply {
             joins.forEach {
               when (it) {
+                // for future work
+                is RequiredJoin.ReadList -> Unit
                 // we don't have to handle those since we already join on those tables anyway, the 'when' is here for future proofing
                 RequiredJoin.BookMetadata -> Unit
                 RequiredJoin.SeriesMetadata -> Unit
                 RequiredJoin.Media -> Unit
                 is RequiredJoin.ReadProgress -> Unit
                 RequiredJoin.BookMetadataAggregation -> Unit
+                is RequiredJoin.Collection -> Unit
               }
             }
           }.join(m)
