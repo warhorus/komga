@@ -9,7 +9,6 @@ import org.gotson.komga.domain.model.DirectoryNotFoundException
 import org.gotson.komga.domain.model.DuplicateNameException
 import org.gotson.komga.domain.model.Library
 import org.gotson.komga.domain.model.PathContainedInPath
-import org.gotson.komga.domain.model.ROLE_ADMIN
 import org.gotson.komga.domain.model.SearchCondition
 import org.gotson.komga.domain.model.SearchContext
 import org.gotson.komga.domain.model.SearchOperator
@@ -60,7 +59,7 @@ class LibraryController(
       libraryRepository.findAll()
     } else {
       libraryRepository.findAllByIds(principal.user.sharedLibrariesIds)
-    }.sortedBy { it.name.lowercase() }.map { it.toDto(includeRoot = principal.user.roleAdmin) }
+    }.sortedBy { it.name.lowercase() }.map { it.toDto(includeRoot = principal.user.isAdmin) }
 
   @GetMapping("{libraryId}")
   fun getOne(
@@ -69,11 +68,11 @@ class LibraryController(
   ): LibraryDto =
     libraryRepository.findByIdOrNull(libraryId)?.let {
       if (!principal.user.canAccessLibrary(it)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
-      it.toDto(includeRoot = principal.user.roleAdmin)
+      it.toDto(includeRoot = principal.user.isAdmin)
     } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
 
   @PostMapping
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   fun addOne(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @Valid @RequestBody
@@ -108,10 +107,11 @@ class LibraryController(
             seriesCover = library.seriesCover.toDomain(),
             hashFiles = library.hashFiles,
             hashPages = library.hashPages,
+            hashKoreader = library.hashKoreader,
             analyzeDimensions = library.analyzeDimensions,
             oneshotsDirectory = library.oneshotsDirectory?.ifBlank { null },
           ),
-        ).toDto(includeRoot = principal.user.roleAdmin)
+        ).toDto(includeRoot = principal.user.isAdmin)
     } catch (e: Exception) {
       when (e) {
         is FileNotFoundException,
@@ -126,7 +126,7 @@ class LibraryController(
     }
 
   @PutMapping("/{libraryId}")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   @Deprecated("Use PATCH /v1/library instead", ReplaceWith("patchOne"))
   fun updateOne(
@@ -138,7 +138,7 @@ class LibraryController(
   }
 
   @PatchMapping("/{libraryId}")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   fun patchOne(
     @PathVariable libraryId: String,
@@ -177,6 +177,7 @@ class LibraryController(
             seriesCover = seriesCover?.toDomain() ?: existing.seriesCover,
             hashFiles = hashFiles ?: existing.hashFiles,
             hashPages = hashPages ?: existing.hashPages,
+            hashKoreader = hashKoreader ?: existing.hashKoreader,
             analyzeDimensions = analyzeDimensions ?: existing.analyzeDimensions,
             oneshotsDirectory = if (isSet("oneshotsDirectory")) oneshotsDirectory?.ifBlank { null } else existing.oneshotsDirectory,
           )
@@ -199,7 +200,7 @@ class LibraryController(
   }
 
   @DeleteMapping("/{libraryId}")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   fun deleteOne(
     @PathVariable libraryId: String,
@@ -210,7 +211,7 @@ class LibraryController(
   }
 
   @PostMapping("{libraryId}/scan")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.ACCEPTED)
   fun scan(
     @PathVariable libraryId: String,
@@ -222,7 +223,7 @@ class LibraryController(
   }
 
   @PostMapping("{libraryId}/analyze")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.ACCEPTED)
   fun analyze(
     @PathVariable libraryId: String,
@@ -238,7 +239,7 @@ class LibraryController(
   }
 
   @PostMapping("{libraryId}/metadata/refresh")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.ACCEPTED)
   fun refreshMetadata(
     @PathVariable libraryId: String,
@@ -256,7 +257,7 @@ class LibraryController(
   }
 
   @PostMapping("{libraryId}/empty-trash")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.ACCEPTED)
   fun emptyTrash(
     @PathVariable libraryId: String,

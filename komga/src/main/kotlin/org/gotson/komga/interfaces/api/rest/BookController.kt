@@ -22,8 +22,6 @@ import org.gotson.komga.domain.model.Media
 import org.gotson.komga.domain.model.MediaExtensionEpub
 import org.gotson.komga.domain.model.MediaNotReadyException
 import org.gotson.komga.domain.model.MediaProfile
-import org.gotson.komga.domain.model.ROLE_ADMIN
-import org.gotson.komga.domain.model.ROLE_PAGE_STREAMING
 import org.gotson.komga.domain.model.ReadStatus
 import org.gotson.komga.domain.model.SearchCondition
 import org.gotson.komga.domain.model.SearchContext
@@ -195,7 +193,7 @@ class BookController(
 
     return bookDtoRepository
       .findAll(bookSearch, SearchContext(principal.user), pageRequest)
-      .map { it.restrictUrl(!principal.user.roleAdmin) }
+      .map { it.restrictUrl(!principal.user.isAdmin) }
   }
 
   @Operation(description = "Return newly added or updated books.")
@@ -222,7 +220,7 @@ class BookController(
       .findAll(
         SearchContext(principal.user),
         pageRequest,
-      ).map { it.restrictUrl(!principal.user.roleAdmin) }
+      ).map { it.restrictUrl(!principal.user.isAdmin) }
   }
 
   @Operation(description = "Return first unread book of series with at least one book read and no books in progress.")
@@ -239,11 +237,11 @@ class BookController(
         principal.user.getAuthorizedLibraryIds(libraryIds),
         page,
         principal.user.restrictions,
-      ).map { it.restrictUrl(!principal.user.roleAdmin) }
+      ).map { it.restrictUrl(!principal.user.isAdmin) }
 
   @PageableAsQueryParam
   @GetMapping("api/v1/books/duplicates")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   fun getDuplicateBooks(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @RequestParam(name = "unpaged", required = false) unpaged: Boolean = false,
@@ -276,7 +274,7 @@ class BookController(
     bookDtoRepository.findByIdOrNull(bookId, principal.user.id)?.let {
       contentRestrictionChecker.checkContentRestriction(principal.user, it)
 
-      it.restrictUrl(!principal.user.roleAdmin)
+      it.restrictUrl(!principal.user.isAdmin)
     } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
 
   @GetMapping("api/v1/books/{bookId}/previous")
@@ -288,7 +286,7 @@ class BookController(
 
     return bookDtoRepository
       .findPreviousInSeriesOrNull(bookId, principal.user.id)
-      ?.restrictUrl(!principal.user.roleAdmin)
+      ?.restrictUrl(!principal.user.isAdmin)
       ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
   }
 
@@ -301,7 +299,7 @@ class BookController(
 
     return bookDtoRepository
       .findNextInSeriesOrNull(bookId, principal.user.id)
-      ?.restrictUrl(!principal.user.roleAdmin)
+      ?.restrictUrl(!principal.user.isAdmin)
       ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
   }
 
@@ -357,7 +355,7 @@ class BookController(
   }
 
   @PostMapping(value = ["api/v1/books/{bookId}/thumbnails"], consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   fun addUserUploadedBookThumbnail(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     @PathVariable(name = "bookId") bookId: String,
@@ -386,7 +384,7 @@ class BookController(
   }
 
   @PutMapping("api/v1/books/{bookId}/thumbnails/{thumbnailId}/selected")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.ACCEPTED)
   fun markSelectedBookThumbnail(
     @AuthenticationPrincipal principal: KomgaPrincipal,
@@ -400,7 +398,7 @@ class BookController(
   }
 
   @DeleteMapping("api/v1/books/{bookId}/thumbnails/{thumbnailId}")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.ACCEPTED)
   fun deleteUserUploadedBookThumbnail(
     @AuthenticationPrincipal principal: KomgaPrincipal,
@@ -455,7 +453,7 @@ class BookController(
     value = ["api/v1/books/{bookId}/pages/{pageNumber}"],
     produces = [MediaType.ALL_VALUE],
   )
-  @PreAuthorize("hasRole('$ROLE_PAGE_STREAMING')")
+  @PreAuthorize("hasRole('PAGE_STREAMING')")
   fun getBookPage(
     @AuthenticationPrincipal principal: KomgaPrincipal,
     request: ServletWebRequest,
@@ -594,7 +592,7 @@ class BookController(
   ): WPPublicationDto = commonBookController.getWebPubManifestDivinaInternal(principal, bookId, webPubGenerator)
 
   @PostMapping("api/v1/books/{bookId}/analyze")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.ACCEPTED)
   fun analyze(
     @PathVariable bookId: String,
@@ -605,7 +603,7 @@ class BookController(
   }
 
   @PostMapping("api/v1/books/{bookId}/metadata/refresh")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.ACCEPTED)
   fun refreshMetadata(
     @PathVariable bookId: String,
@@ -617,7 +615,7 @@ class BookController(
   }
 
   @PatchMapping("api/v1/books/{bookId}/metadata")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   fun updateMetadata(
     @PathVariable bookId: String,
@@ -636,7 +634,7 @@ class BookController(
   } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
 
   @PatchMapping("api/v1/books/metadata")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   fun updateBatchMetadata(
     @Parameter(description = "A map of book IDs which values are the metadata fields to update. Set a field to null to unset the metadata. You can omit fields you don't want to update.")
@@ -698,7 +696,7 @@ class BookController(
   }
 
   @PostMapping("api/v1/books/import")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.ACCEPTED)
   fun importBooks(
     @RequestBody bookImportBatch: BookImportBatchDto,
@@ -720,7 +718,7 @@ class BookController(
   }
 
   @DeleteMapping("api/v1/books/{bookId}/file")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.ACCEPTED)
   fun deleteBook(
     @PathVariable bookId: String,
@@ -732,7 +730,7 @@ class BookController(
   }
 
   @PutMapping("api/v1/books/thumbnails")
-  @PreAuthorize("hasRole('$ROLE_ADMIN')")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.ACCEPTED)
   fun regenerateThumbnails(
     @RequestParam(name = "for_bigger_result_only", required = false) forBiggerResultOnly: Boolean = false,

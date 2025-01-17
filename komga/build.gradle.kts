@@ -83,7 +83,7 @@ dependencies {
   implementation("org.apache.tika:tika-core:2.9.1")
   implementation("org.apache.commons:commons-compress:1.27.1")
   implementation("com.github.junrar:junrar:7.5.5")
-  implementation("com.github.gotson.nightcompress:nightcompress:1.0.0")
+  implementation("com.github.gotson.nightcompress:nightcompress:1.1.0")
   implementation("org.apache.pdfbox:pdfbox:3.0.3")
   implementation("net.grey-panther:natural-comparator:1.1")
   implementation("org.jsoup:jsoup:1.18.3")
@@ -108,8 +108,8 @@ dependencies {
 
   implementation("com.github.ben-manes.caffeine:caffeine")
 
-  implementation("org.xerial:sqlite-jdbc:3.47.1.0")
-  jooqGenerator("org.xerial:sqlite-jdbc:3.47.1.0")
+  implementation("org.xerial:sqlite-jdbc:3.48.0.0")
+  jooqGenerator("org.xerial:sqlite-jdbc:3.48.0.0")
 
   if (version.toString().endsWith(".0.0")) {
     ksp("com.github.gotson.bestbefore:bestbefore-processor-kotlin:0.1.0")

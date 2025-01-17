@@ -31,9 +31,9 @@ import org.gotson.komga.domain.persistence.ReadProgressRepository
 import org.gotson.komga.domain.persistence.ThumbnailBookRepository
 import org.gotson.komga.infrastructure.configuration.KomgaSettingsProvider
 import org.gotson.komga.infrastructure.hash.Hasher
+import org.gotson.komga.infrastructure.hash.KoreaderHasher
 import org.gotson.komga.infrastructure.image.ImageConverter
 import org.gotson.komga.infrastructure.image.ImageType
-import org.gotson.komga.language.toCurrentTimeZone
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Pageable
@@ -42,6 +42,7 @@ import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.web.util.UriUtils
 import java.io.File
 import java.time.LocalDateTime
+import java.time.ZoneId
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.exists
 import kotlin.io.path.isWritable
@@ -66,6 +67,7 @@ class BookLifecycle(
   private val eventPublisher: ApplicationEventPublisher,
   private val transactionTemplate: TransactionTemplate,
   private val hasher: Hasher,
+  private val hasherKoreader: KoreaderHasher,
   private val historicalEventRepository: HistoricalEventRepository,
   private val komgaSettingsProvider: KomgaSettingsProvider,
   @Qualifier("pdfImageType")
@@ -110,6 +112,19 @@ class BookLifecycle(
       bookRepository.update(book.copy(fileHash = hash))
     } else {
       logger.info { "Book already has a hash, skipping" }
+    }
+  }
+
+  fun hashKoreaderAndPersist(book: Book) {
+    if (!libraryRepository.findById(book.libraryId).hashKoreader)
+      return logger.info { "File hashing for Koreader is disabled for the library, it may have changed since the task was submitted, skipping" }
+
+    logger.info { "Hash Koreader and persist book: $book" }
+    if (book.fileHashKoreader.isBlank()) {
+      val hash = hasherKoreader.computeHash(book.path)
+      bookRepository.update(book.copy(fileHashKoreader = hash))
+    } else {
+      logger.info { "Book already has a Koreader hash, skipping" }
     }
   }
 
@@ -443,8 +458,8 @@ class BookLifecycle(
     readProgressRepository.findByBookIdAndUserIdOrNull(book.id, user.id)?.let { savedProgress ->
       check(
         newProgression.modified
+          .withZoneSameInstant(ZoneId.systemDefault())
           .toLocalDateTime()
-          .toCurrentTimeZone()
           .isAfter(savedProgress.readDate),
       ) { "Progression is older than existing" }
     }
@@ -462,7 +477,7 @@ class BookLifecycle(
             user.id,
             newProgression.locator.locations!!.position!!,
             newProgression.locator.locations.position == media.pageCount,
-            newProgression.modified.toLocalDateTime().toCurrentTimeZone(),
+            newProgression.modified.withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime(),
             newProgression.device.id,
             newProgression.device.name,
             newProgression.locator,
@@ -503,7 +518,7 @@ class BookLifecycle(
             user.id,
             totalProgression?.let { (media.pageCount * it).roundToInt() } ?: 0,
             totalProgression?.let { it >= 0.99F } ?: false,
-            newProgression.modified.toLocalDateTime().toCurrentTimeZone(),
+            newProgression.modified.withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime(),
             newProgression.device.id,
             newProgression.device.name,
             newProgression.locator.copy(
